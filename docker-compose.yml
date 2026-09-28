@@ -1,0 +1,43 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: taller-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: taller
+      MYSQL_USER: taller_user
+      MYSQL_PASSWORD: taller_pass
+      MYSQL_ROOT_PASSWORD: root_pass_change_me
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot_pass_change_me"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  nginx:
+    image: nginx:1.27-alpine
+    profiles: ["production"]
+    ports:
+      - "8088:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - mysql
+  api:
+    build: ./backend
+    profiles: ["full"]
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/taller?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USER: taller_user
+      DB_PASSWORD: taller_pass
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+volumes:
+  mysql_data:
