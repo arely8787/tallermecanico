@@ -20,8 +20,11 @@ services:
   nginx:
     image: nginx:1.27-alpine
     profiles: ["production"]
+    restart: unless-stopped
     ports:
       - "8088:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./frontend/dist:/usr/share/nginx/html:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -30,6 +33,7 @@ services:
   api:
     build: ./backend
     profiles: ["full"]
+    restart: on-failure
     environment:
       DB_URL: jdbc:mysql://mysql:3306/taller?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_USER: taller_user
