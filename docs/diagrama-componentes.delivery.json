@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "02064b25-90fe-495c-a952-44a637789368",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/ary/Escritorio/tallermecanico/.archify/architecture-acceso-administrador-20260929-134000/candidate.json",
+  "output": "/home/ary/Escritorio/tallermecanico/docs/diagrama-componentes.html",
+  "specification": {
+    "sha256": "fa8ac15294d7bcaa21d6fc767bd85188d952e4d93fd0aa386159fbfd7e59f2c4",
+    "bytes": 6069
+  },
+  "artifact": {
+    "sha256": "97668adbc589c7f5b7466996af83761ee56eb77be4bdf6e6359179b05ba6d574",
+    "bytes": 770735
+  }
+}

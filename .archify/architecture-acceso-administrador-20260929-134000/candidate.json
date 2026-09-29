@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Taller Morado: acceso administrativo y clientes",
+    "subtitle": "Componentes implementados para login, creación de empleados y gestión de clientes",
+    "output": "docs/diagrama-componentes.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/arely8787/tallermecanico.git",
+      "provider": "github",
+      "revision": "e5f49dfa1d0ab2178131efd75cb91c1a8cf6d2e9"
+    }
+  },
+  "components": [
+    {
+      "id": "administrador",
+      "type": "external",
+      "label": "Administrador",
+      "sublabel": "Único rol con acceso inicial",
+      "pos": [40, 310],
+      "size": [165, 68],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/auth/AuthController.kt", "line": 27, "end_line": 33}]
+    },
+    {
+      "id": "nginx",
+      "type": "frontend",
+      "label": "Nginx",
+      "sublabel": "Estáticos y proxy /api",
+      "pos": [270, 310],
+      "size": [155, 68],
+      "sources": [{"path": "nginx/default.conf", "line": 1, "end_line": 7}]
+    },
+    {
+      "id": "vue",
+      "type": "frontend",
+      "label": "Vue 3",
+      "sublabel": "Login, empleados y clientes",
+      "pos": [490, 310],
+      "size": [180, 72],
+      "sources": [{"path": "frontend/src/App.vue", "line": 13, "end_line": 29}, {"path": "frontend/src/App.vue", "line": 71, "end_line": 82}]
+    },
+    {
+      "id": "seguridad",
+      "type": "security",
+      "label": "Spring Security",
+      "sublabel": "Bearer, estado y rol actual",
+      "pos": [740, 310],
+      "size": [185, 72],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/security/SecurityConfig.kt", "line": 27, "end_line": 56}]
+    },
+    {
+      "id": "auth",
+      "type": "backend",
+      "label": "AuthController",
+      "sublabel": "Login y empleados solo ADMIN",
+      "pos": [995, 120],
+      "size": [165, 74],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/auth/AuthController.kt", "line": 25, "end_line": 62}]
+    },
+    {
+      "id": "user-repository",
+      "type": "backend",
+      "label": "UserRepository",
+      "sublabel": "Usuarios, roles y estado",
+      "pos": [1260, 120],
+      "size": [175, 70],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/domain/User.kt", "line": 9, "end_line": 24}]
+    },
+    {
+      "id": "client-controller",
+      "type": "backend",
+      "label": "ClientController",
+      "sublabel": "API REST multipart",
+      "pos": [995, 420],
+      "size": [190, 74],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/client/ClientController.kt", "line": 32, "end_line": 53}]
+    },
+    {
+      "id": "client-facade",
+      "type": "backend",
+      "label": "ClientFacade",
+      "sublabel": "Validación, foto y duplicados",
+      "pos": [1260, 420],
+      "size": [165, 74],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/client/ClientFacade.kt", "line": 50, "end_line": 86}, {"path": "backend/src/main/kotlin/mx/taller/api/client/ClientFacade.kt", "line": 134, "end_line": 187}]
+    },
+    {
+      "id": "client-repository",
+      "type": "backend",
+      "label": "ClientRepository",
+      "sublabel": "JPA y consultas de duplicado",
+      "pos": [1530, 420],
+      "size": [195, 74],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/client/Client.kt", "line": 7, "end_line": 45}]
+    },
+    {
+      "id": "mysql",
+      "type": "database",
+      "label": "MySQL 8.4",
+      "sublabel": "users y clients",
+      "pos": [1530, 245],
+      "size": [170, 68],
+      "sources": [{"path": "docker-compose.yml", "line": 1, "end_line": 19}]
+    }
+  ],
+  "boundaries": [
+    {"kind": "security-group", "label": "API Spring Boot", "wraps": ["seguridad", "auth", "user-repository", "client-controller", "client-facade", "client-repository"], "pad": 26}
+  ],
+  "connections": [
+    {"id": "admin-nginx", "from": "administrador", "to": "nginx", "label": "HTTP :8088", "variant": "emphasis"},
+    {"id": "nginx-vue", "from": "nginx", "to": "vue", "label": "sirve dist", "variant": "emphasis"},
+    {"id": "vue-nginx-api", "from": "vue", "to": "nginx", "label": "solicitudes /api", "variant": "dashed", "fromSide": "bottom", "toSide": "bottom", "labelDy": 48},
+    {"id": "nginx-security", "from": "nginx", "to": "seguridad", "label": "proxy /api", "fromSide": "right", "toSide": "left"},
+    {"id": "security-auth", "from": "seguridad", "to": "auth", "label": "login público; ADMIN para usuarios", "variant": "security", "fromSide": "top", "toSide": "left"},
+    {"id": "auth-users", "from": "auth", "to": "user-repository", "label": "JPA users", "variant": "emphasis"},
+    {"id": "users-mysql", "from": "user-repository", "to": "mysql", "label": "persiste cuentas", "fromSide": "bottom", "toSide": "top"},
+    {"id": "security-client", "from": "seguridad", "to": "client-controller", "label": "Bearer y autorización", "variant": "security", "fromSide": "bottom", "toSide": "left"},
+    {"id": "client-facade", "from": "client-controller", "to": "client-facade", "label": "delegación", "variant": "emphasis"},
+    {"id": "facade-repository", "from": "client-facade", "to": "client-repository", "label": "CRUD y búsqueda", "variant": "emphasis"},
+    {"id": "clients-mysql", "from": "client-repository", "to": "mysql", "label": "JPA clients", "fromSide": "top", "toSide": "bottom"}
+  ],
+  "cards": [
+    {"dot": "rose", "title": "Acceso vigente", "items": ["El login rechaza cuentas no activas y cualquier rol distinto de ADMIN.", "Solo ADMIN puede crear, listar o cambiar roles de empleados."]},
+    {"dot": "violet", "title": "Clientes", "items": ["La API declara ADMIN y RECEPCIONISTA; la política de login vigente solo permite sesiones ADMIN.", "La fachada bloquea duplicados y fotos que no sean JPG/PNG o excedan 20 MB."]},
+    {"dot": "emerald", "title": "Persistencia", "items": ["Usuarios y clientes se almacenan mediante JPA en MySQL 8.4.", "Los tokens Bearer viven en memoria y se invalidan cuando la API se reinicia."]}
+  ]
+}

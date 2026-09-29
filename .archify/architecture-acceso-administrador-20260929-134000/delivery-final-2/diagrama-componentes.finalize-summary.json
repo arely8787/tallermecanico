@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/ary/Escritorio/tallermecanico/.archify/architecture-acceso-administrador-20260929-134000/candidate.json",
+    "sha256": "fa8ac15294d7bcaa21d6fc767bd85188d952e4d93fd0aa386159fbfd7e59f2c4",
+    "bytes": 6069
+  },
+  "artifact": {
+    "path": "/home/ary/Escritorio/tallermecanico/docs/diagrama-componentes.html",
+    "sha256": "97668adbc589c7f5b7466996af83761ee56eb77be4bdf6e6359179b05ba6d574",
+    "bytes": 770735
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/home/ary/Escritorio/tallermecanico/docs/diagrama-componentes.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-acceso-administrador-20260929-134000/delivery-final-2/diagrama-componentes.finalize.json",
+    "summaryReceipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-acceso-administrador-20260929-134000/delivery-final-2/diagrama-componentes.finalize-summary.json",
+    "browserCheckReceipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-acceso-administrador-20260929-134000/delivery-final-2/diagrama-componentes.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.0.1",
+    "availableVersion": "3.0.1",
+    "releaseNotes": null,
+    "checkedAt": "2026-09-29T19:48:13.087Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1458
+}
