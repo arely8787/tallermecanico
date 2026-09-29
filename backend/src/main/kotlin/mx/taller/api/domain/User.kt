@@ -3,7 +3,7 @@ package mx.taller.api.domain
 import jakarta.persistence.*
 import java.time.Instant
 
-enum class Role { ADMIN, GERENTE, MECANICO, CLIENTE, RECEPCIONISTA, ALMACENISTA }
+enum class Role { ADMIN, GERENTE, AUXILIAR, MECANICO, CLIENTE, RECEPCIONISTA, ALMACENISTA }
 enum class UserStatus { PENDING, ACTIVE, DISABLED }
 
 @Entity @Table(name = "users")

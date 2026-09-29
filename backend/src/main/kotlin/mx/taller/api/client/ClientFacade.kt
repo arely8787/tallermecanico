@@ -176,7 +176,7 @@ class ClientFacade(private val clients: ClientRepository) {
       if (required) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La fotografía es obligatoria")
       return null
     }
-    if (photo.size > MAX_PHOTO_BYTES) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La fotografía no puede superar 5 MB")
+    if (photo.size > MAX_PHOTO_BYTES) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La fotografía no puede superar 20 MB")
     val bytes = photo.bytes
     val isPng = bytes.size >= 8 && bytes.copyOfRange(0, 8).contentEquals(PNG_SIGNATURE)
     val isJpeg = bytes.size >= 3 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() && bytes[2] == 0xFF.toByte()
@@ -205,6 +205,6 @@ class ClientFacade(private val clients: ClientRepository) {
     val EMAIL = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
     val POSTAL_CODE = Regex("^\\d{5}$")
     val PNG_SIGNATURE = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
-    const val MAX_PHOTO_BYTES = 5L * 1024 * 1024
+    const val MAX_PHOTO_BYTES = 20L * 1024 * 1024
   }
 }

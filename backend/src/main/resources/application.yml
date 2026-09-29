@@ -8,5 +8,9 @@ spring:
       ddl-auto: update
     open-in-view: false
 server:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
   error:
     include-message: never

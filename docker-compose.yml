@@ -35,9 +35,11 @@ services:
     profiles: ["full"]
     restart: on-failure
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/taller?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_URL: jdbc:mysql://host.docker.internal:3306/taller?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       DB_USER: taller_user
       DB_PASSWORD: taller_pass
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8080:8080"
     depends_on:
