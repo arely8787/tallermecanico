@@ -5,4 +5,6 @@ import org.springframework.boot.runApplication
 
 @SpringBootApplication
 class TallerApplication
-fun main(args: Array<String>) = runApplication<TallerApplication>(*args)
+fun main(args: Array<String>) {
+  runApplication<TallerApplication>(*args)
+}

@@ -21,6 +21,8 @@ import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import mx.taller.api.domain.Role
+import mx.taller.api.domain.UserRepository
+import mx.taller.api.domain.UserStatus
 
 @Configuration @EnableWebSecurity @EnableMethodSecurity
 class SecurityConfig(private val tokenFilter: TokenFilter) {
@@ -41,11 +43,13 @@ class TokenService {
 }
 
 @Component
-class TokenFilter(private val tokens: TokenService): OncePerRequestFilter() {
+class TokenFilter(private val tokens: TokenService, private val users: UserRepository): OncePerRequestFilter() {
  override fun doFilterInternal(req: HttpServletRequest, res: HttpServletResponse, chain: FilterChain) {
    val token=req.getHeader("Authorization")?.removePrefix("Bearer ")
-   token?.let { tokens.lookup(it) }?.let { (id, role) ->
-     val auth=UsernamePasswordAuthenticationToken(id, null, listOf(SimpleGrantedAuthority("ROLE_$role")))
+   token?.let { tokens.lookup(it) }?.let { (id, _) ->
+     val user = users.findById(id).orElse(null)
+     if (user?.status != UserStatus.ACTIVE) return@let
+     val auth=UsernamePasswordAuthenticationToken(id, null, listOf(SimpleGrantedAuthority("ROLE_${user.role}")))
      org.springframework.security.core.context.SecurityContextHolder.getContext().authentication=auth
    }
    chain.doFilter(req,res)
