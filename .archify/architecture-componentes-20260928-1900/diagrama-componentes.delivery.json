@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "eb5e058d-4e2b-4011-beac-803951bde23b",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/candidate.json",
+  "output": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+  "specification": {
+    "sha256": "92caa5a8a75daeea1fa17f4b602589552ea7bb223047d8fa0f66e61a14986fc9",
+    "bytes": 4570
+  },
+  "artifact": {
+    "sha256": "873a471f5572c1c96cf1500e24eeea4e7849896b22baa6951aede9e9ad2db5f2",
+    "bytes": 763522
+  }
+}

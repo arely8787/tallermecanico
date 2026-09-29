@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/candidate.json",
+    "sha256": "92caa5a8a75daeea1fa17f4b602589552ea7bb223047d8fa0f66e61a14986fc9",
+    "bytes": 4570
+  },
+  "artifact": {
+    "path": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+    "sha256": "873a471f5572c1c96cf1500e24eeea4e7849896b22baa6951aede9e9ad2db5f2",
+    "bytes": 763522
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "skipped"
+  },
+  "failedStage": "browser-check",
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 1,
+    "shown": 1,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.finalize.json",
+    "summaryReceipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.finalize-summary.json",
+    "browserCheckReceipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-valid"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 1552
+}

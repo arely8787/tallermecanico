@@ -1,0 +1,417 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "skipped",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-09-29T01:04:04.453Z",
+  "specification": {
+    "path": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/candidate.json",
+    "sha256": "92caa5a8a75daeea1fa17f4b602589552ea7bb223047d8fa0f66e61a14986fc9",
+    "bytes": 4570
+  },
+  "artifact": {
+    "path": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+    "sha256": "873a471f5572c1c96cf1500e24eeea4e7849896b22baa6951aede9e9ad2db5f2",
+    "bytes": 763522
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/home/ary/.local/share/fnm/node-versions/v24.20.0/installation/bin/node",
+        "/home/ary/.codex/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/candidate.json",
+        "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/ary/Escritorio/tallermecanico",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "92caa5a8a75daeea1fa17f4b602589552ea7bb223047d8fa0f66e61a14986fc9",
+          "bytes": 4570
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 924,
+      "command": [
+        "/home/ary/.local/share/fnm/node-versions/v24.20.0/installation/bin/node",
+        "/home/ary/.codex/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/candidate.json",
+        "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/ary/Escritorio/tallermecanico",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "eb5e058d-4e2b-4011-beac-803951bde23b",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/candidate.json",
+        "output": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+        "specification": {
+          "sha256": "92caa5a8a75daeea1fa17f4b602589552ea7bb223047d8fa0f66e61a14986fc9",
+          "bytes": 4570
+        },
+        "artifact": {
+          "sha256": "873a471f5572c1c96cf1500e24eeea4e7849896b22baa6951aede9e9ad2db5f2",
+          "bytes": 763522
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "https://github.com/arely8787/tallermecanico",
+          "revision": "dab82f8320a46a502ed9d9615d914fb35c2c5367",
+          "references": 8
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 374,
+      "command": [
+        "/home/ary/.local/share/fnm/node-versions/v24.20.0/installation/bin/node",
+        "/home/ary/.codex/skills/archify/bin/archify.mjs",
+        "check",
+        "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+        "artifact": {
+          "sha256": "873a471f5572c1c96cf1500e24eeea4e7849896b22baa6951aede9e9ad2db5f2",
+          "bytes": 763522
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 1,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 15.1,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 7.5,
+            "maxBends": 4,
+            "routesOverSuggestedBends": 1,
+            "maxStretch": 1.645,
+            "routesOverSuggestedStretch": 1,
+            "minSegmentPx": 20,
+            "minInteriorSegmentPx": 20,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [
+              {
+                "left": {
+                  "id": "seguridad-cliente",
+                  "from": "seguridad",
+                  "to": "cliente-controller",
+                  "label": "autoriza rol",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "id": "auth-mysql",
+                  "from": "auth",
+                  "to": "mysql",
+                  "label": "JPA users",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  638,
+                  257
+                ]
+              }
+            ],
+            "detours": [
+              {
+                "relationship": {
+                  "id": "seguridad-cliente",
+                  "from": "seguridad",
+                  "to": "cliente-controller",
+                  "label": "autoriza rol",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "bends": 4,
+                "stretch": 1.645
+              }
+            ]
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 95,
+            "emptyTopRatio": 0.181,
+            "occupiedTop": 95,
+            "viewBoxTop": 0,
+            "canvasHeight": 524,
+            "typicalNodeHeight": 70,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 1223.4375,
+            "actualBudgetPx": 1223.4375,
+            "actualReaderWidth": 1253.4375,
+            "desiredReaderWidth": 1253.4375,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": true,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "edge",
+              "id": "usuario-vue",
+              "from": "usuario",
+              "to": "vue"
+            },
+            "minimumSourceTextPx": 8,
+            "minimumProjectedTextPx": 7.5,
+            "semanticTextCount": 25
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "eb5e058d-4e2b-4011-beac-803951bde23b"
+      }
+    },
+    "browser-check": {
+      "status": "skipped",
+      "exitCode": 2,
+      "durationMs": 59,
+      "command": [
+        "/home/ary/.local/share/fnm/node-versions/v24.20.0/installation/bin/node",
+        "/home/ary/.codex/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": false,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "skipped",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "eb5e058d-4e2b-4011-beac-803951bde23b",
+        "artifact": {
+          "path": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+          "sha256": "873a471f5572c1c96cf1500e24eeea4e7849896b22baa6951aede9e9ad2db5f2",
+          "bytes": 763522
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "unavailable",
+          "executable": null
+        },
+        "diagnostics": [
+          {
+            "code": "viewer/chrome-unavailable",
+            "severity": "warning",
+            "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+            "subject": {
+              "artifact": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html"
+            },
+            "evidence": {
+              "executable": null
+            },
+            "supportedFixes": [
+              "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+            ]
+          }
+        ],
+        "containment": {
+          "status": "skipped",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": []
+        },
+        "themeStates": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "readability": {
+          "status": "skipped",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": []
+        },
+        "viewerChrome": {
+          "status": "skipped",
+          "viewports": []
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "diagrama-componentes.browser-check.json",
+          "files": []
+        },
+        "error": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path."
+      }
+    }
+  },
+  "diagnostics": [
+    {
+      "code": "viewer/chrome-unavailable",
+      "severity": "warning",
+      "message": "Chrome or Chromium is unavailable. Set ARCHIFY_CHROME to its executable path.",
+      "subject": {
+        "artifact": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.html"
+      },
+      "evidence": {
+        "executable": null
+      },
+      "supportedFixes": [
+        "set ARCHIFY_CHROME to a Chrome or Chromium executable and rerun browser-check"
+      ]
+    }
+  ],
+  "evidence": {
+    "receipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.finalize.json",
+    "summaryReceipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.finalize-summary.json",
+    "browserCheckReceipt": "/home/ary/Escritorio/tallermecanico/.archify/architecture-componentes-20260928-1900/diagrama-componentes.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "failedStage": "browser-check",
+  "finishedAt": "2026-09-29T01:04:06.006Z",
+  "durationMs": 1552,
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "cache-valid"
+  }
+}

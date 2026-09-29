@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Taller Morado: autenticación y clientes",
+    "subtitle": "Componentes implementados en el flujo de acceso y registro de clientes",
+    "output": ".archify/architecture-componentes-20260928-1900/diagrama-componentes.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/arely8787/tallermecanico.git",
+      "revision": "dab82f8320a46a502ed9d9615d914fb35c2c5367"
+    }
+  },
+  "components": [
+    {
+      "id": "usuario",
+      "type": "external",
+      "label": "Usuario autenticado",
+      "sublabel": "Admin o Recepcionista",
+      "pos": [40, 310],
+      "size": [145, 64],
+      "sources": [{"path": "frontend/src/App.vue", "line": 23, "end_line": 24}]
+    },
+    {
+      "id": "vue",
+      "type": "frontend",
+      "label": "Vue 3",
+      "sublabel": "Login y formulario de clientes",
+      "pos": [250, 310],
+      "size": [175, 70],
+      "sources": [{"path": "frontend/src/App.vue", "line": 13, "end_line": 76}]
+    },
+    {
+      "id": "seguridad",
+      "type": "security",
+      "label": "Spring Security",
+      "sublabel": "Bearer + rol vigente",
+      "pos": [470, 95],
+      "size": [165, 64],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/security/SecurityConfig.kt", "line": 27, "end_line": 56}]
+    },
+    {
+      "id": "auth",
+      "type": "backend",
+      "label": "AuthController",
+      "sublabel": "Login y cuentas",
+      "pos": [470, 225],
+      "size": [165, 64],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/auth/AuthController.kt", "line": 25, "end_line": 57}]
+    },
+    {
+      "id": "cliente-controller",
+      "type": "backend",
+      "label": "ClientController",
+      "sublabel": "REST multipart · ADMIN/RECEPCIONISTA",
+      "pos": [470, 380],
+      "size": [190, 76],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/client/ClientController.kt", "line": 32, "end_line": 53}]
+    },
+    {
+      "id": "facade",
+      "type": "backend",
+      "label": "ClientFacade",
+      "sublabel": "Validación, duplicados y fotografía",
+      "pos": [735, 380],
+      "size": [190, 76],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/client/ClientFacade.kt", "line": 53, "end_line": 195}]
+    },
+    {
+      "id": "repository",
+      "type": "backend",
+      "label": "ClientRepository",
+      "sublabel": "Spring Data JPA",
+      "pos": [1100, 380],
+      "size": [165, 70],
+      "sources": [{"path": "backend/src/main/kotlin/mx/taller/api/client/Client.kt", "line": 7, "end_line": 45}]
+    },
+    {
+      "id": "mysql",
+      "type": "database",
+      "label": "MySQL 8.4",
+      "sublabel": "users y clients",
+      "pos": [1100, 205],
+      "size": [165, 64],
+      "sources": [{"path": "docker-compose.yml", "line": 1, "end_line": 19}]
+    }
+  ],
+  "connections": [
+    {"id": "usuario-vue", "from": "usuario", "to": "vue", "label": "interactúa", "variant": "emphasis"},
+    {"id": "vue-auth", "from": "vue", "to": "auth", "label": "POST /api/auth/login", "fromSide": "right", "toSide": "left"},
+    {"id": "vue-clientes", "from": "vue", "to": "cliente-controller", "label": "Bearer + multipart", "variant": "emphasis", "fromSide": "right", "toSide": "left"},
+    {"id": "seguridad-cliente", "from": "seguridad", "to": "cliente-controller", "label": "autoriza rol", "variant": "security", "fromSide": "bottom", "toSide": "top"},
+    {"id": "auth-mysql", "from": "auth", "to": "mysql", "label": "JPA users", "fromSide": "right", "toSide": "left"},
+    {"id": "cliente-facade", "from": "cliente-controller", "to": "facade", "label": "delegación", "variant": "emphasis"},
+    {"id": "facade-repository", "from": "facade", "to": "repository", "label": "CRUD y búsqueda de duplicados", "variant": "emphasis"},
+    {"id": "repository-mysql", "from": "repository", "to": "mysql", "label": "JPA clients", "fromSide": "top", "toSide": "bottom"},
+    {"id": "seguridad-auth", "from": "seguridad", "to": "auth", "label": "rutas públicas", "variant": "security", "fromSide": "bottom", "toSide": "top"}
+  ],
+  "cards": [
+    {"dot": "violet", "title": "Flujo de clientes", "items": ["Solo Admin y Recepcionista acceden a /api/clientes.", "La fachada bloquea correo, teléfono y nombre+fecha duplicados.", "La fotografía se valida como JPG/PNG y se guarda en MySQL."]},
+    {"dot": "emerald", "title": "Acceso", "items": ["El login genera un token Bearer en memoria.", "El filtro consulta el rol y estado actuales antes de autorizar."]}
+  ]
+}
