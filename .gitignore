@@ -2,5 +2,8 @@
 **/target/
 **/node_modules/
 **/.env
+/.archify/
+/docs/diagrama-componentes*.json
+**/__pycache__/
+*.pyc
 *.log
-
