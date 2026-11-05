@@ -60,8 +60,8 @@ La entrega ya incluye los módulos que evolucionaron a partir de la fase 2: aute
 
 | # | Pendiente | Motivo | Cómo se cierra | Estado |
 | --- | --- | --- | --- | --- |
-| 1 | Caso e de UC-CV-07: vehículo transferido devuelve al dueño actual | No se crearon datos de prueba de transferencia durante la verificación. | Transferir un vehículo existente y consultar por VIN y placa; comprobar propietario actual. | Pendiente |
-| 2 | Caso f de UC-CV-07: vehículo ELIMINADO devuelve `found:false` | No se creó un vehículo eliminado para no alterar datos. | Marcar un vehículo como ELIMINADO y consultar por VIN y placa. | Pendiente |
+| 1 | Caso e de UC-CV-07: vehículo transferido devuelve al dueño actual | Verificado manualmente con el VIN `1HGCM82633A009001`. | La consulta devolvió el propietario actual después de la transferencia. | Cerrado |
+| 2 | Caso f de UC-CV-07: vehículo ELIMINADO devuelve `found:false` | Verificado manualmente con el VIN `1HGCM82633A009001`. | La consulta respondió `found: false` para el vehículo eliminado. | Cerrado |
 | 3 | Tabla del listado de vehículos en ventanas angostas | El listado puede desbordarse horizontalmente en resoluciones pequeñas. | Revisar diseño responsive y aplicar una solución visual aprobada. | Pendiente |
 | 4 | Decisión sobre `frontend/dist/` | Actualmente Nginx lo usa mediante un volumen, por lo que se mantiene rastreado. | Decidir si el build pasa a la imagen de Nginx; entonces retirar `dist/` del índice e ignorarlo. | Pendiente |
 | 5 | Contraseñas por defecto de `docker-compose.yml` y `application.yml` | La configuración local conserva valores de desarrollo. | Mover valores a `.env`, agregar `.env.example` sin secretos y actualizar la configuración. | Pendiente |
@@ -72,3 +72,9 @@ La entrega ya incluye los módulos que evolucionaron a partir de la fase 2: aute
 - Sustituir los tokens en memoria por sesiones o JWT revocables persistentes.
 - Integrar un proveedor real de correo para recuperación de contraseña.
 - Llevar las credenciales locales a variables de entorno antes de cualquier despliegue fuera de desarrollo.
+
+## Cierre de validación más reciente
+
+La transferencia UC-CV-11 ya estaba implementada en backend, incluida la bitácora de propietarios. Esta entrega solo incorporó la acción **Transferir** en la tabla principal de Administración de vehículos de `VehicleRegistration.vue`, reutilizando los endpoints existentes.
+
+`npm run build` finalizó correctamente. `mvn test -q` no ejecutó pruebas porque Maven no pudo abrir un bloqueo en `~/.m2/repository/.locks`; es un fallo de entorno pendiente, no una validación aprobada.

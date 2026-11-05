@@ -36,9 +36,17 @@ El nombre del cliente es texto informativo; no es un enlace ni desencadena naveg
 | Cliente sin taller | Aprobado: taller `null` |
 | VIN y placa juntos, o ninguno | Aprobado: `400` |
 | Consulta sin token | Aprobado: `403` |
-| Vehículo transferido | Pendiente: el usuario decidió no crear datos de prueba. |
-| Vehículo con estatus `ELIMINADO` | Pendiente: el usuario decidió no crear datos de prueba. |
+| Vehículo transferido | Cerrado: el VIN `1HGCM82633A009001` devolvió al propietario actual después de la transferencia. |
+| Vehículo con estatus `ELIMINADO` | Cerrado: el VIN `1HGCM82633A009001` respondió `found: false`. |
 
-También se verificaron `GET /api/vehiculos`, `GET /api/vehiculos/{id}`, `GET /api/vehiculos/cliente/{id}` y `GET /api/vehiculos/marcas`. `mvn test -q` y `npm run build` finalizaron correctamente durante la regresión.
+También se verificaron `GET /api/vehiculos`, `GET /api/vehiculos/{id}`, `GET /api/vehiculos/cliente/{id}` y `GET /api/vehiculos/marcas`.
+
+## Cierre de validación
+
+En el cierre actual, `npm run build` terminó correctamente. `mvn test -q` no alcanzó a ejecutar pruebas porque Maven no pudo abrir un bloqueo en `~/.m2/repository/.locks`; se registra como fallo de entorno, no como prueba aprobada.
+
+## Transferencia UC-CV-11
+
+La transferencia de propietario ya existía en backend, incluido el historial `vehiculo_historial_propietario` y la validación de destino activo. Esta entrega solo agrega la acción **Transferir** en la tabla principal de Administración de vehículos dentro de `VehicleRegistration.vue`; reutiliza el GET y el PATCH existentes.
 
 Los casos pendientes y las verificaciones diferidas de esta historia se mantienen en la tabla **Pendientes y verificaciones diferidas** de [`fase2.md`](../fase2.md).
