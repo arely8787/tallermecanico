@@ -182,9 +182,18 @@ async function deleteVehicle(vehicle) {
     await loadVehicles()
   } catch (error) { await showError(error, 'No se pudo eliminar el vehículo') }
 }
+/**
+ * Transfiere el vehículo al cliente activo elegido y conserva la vista actual.
+ * Desde la lista administrativa consulta el detalle existente para excluir al propietario vigente del selector.
+ */
 async function transferVehicle(vehicle) {
+  let currentOwnerId = props.client?.id
+  if (!currentOwnerId) {
+    try { currentOwnerId = (await props.api(`/api/vehiculos/${vehicle.id}`, null, 'GET')).clienteId }
+    catch (error) { await showError(error, 'No se pudo obtener el propietario actual'); return }
+  }
   await loadActiveClients()
-  const destinations = clients.value.filter(client => client.id !== props.client?.id)
+  const destinations = clients.value.filter(client => client.id !== currentOwnerId)
   if (!destinations.length) { await Swal.fire({ icon: 'info', title: 'No hay cliente destino', text: 'No hay otro cliente ACTIVO disponible para la transferencia.', confirmButtonColor: '#7e22ce' }); return }
   const options = Object.fromEntries(destinations.map(client => [String(client.id), `${client.fullName} · ${client.email}`]))
   const selection = await Swal.fire({
@@ -197,7 +206,8 @@ async function transferVehicle(vehicle) {
   try {
     const result = await props.api(`/api/vehiculos/${vehicle.id}/transferir`, { clienteDestinoId: Number(selection.value) }, 'PATCH')
     await Swal.fire({ icon: 'success', title: result.transferred ? 'Vehículo transferido' : 'Sin cambios', text: result.transferred ? `Ahora pertenece a ${result.cliente}.` : 'El vehículo ya pertenece al cliente destino.', confirmButtonColor: '#7e22ce' })
-    await loadClientVehicles()
+    if (props.client) await loadClientVehicles()
+    else await loadVehicles()
   } catch (error) { await showError(error, 'No se pudo transferir el vehículo') }
 }
 async function save() {
@@ -236,7 +246,7 @@ onMounted(async () => {
 <template>
   <section v-if="mode === 'list'" class="space-y-5">
     <div class="flex flex-wrap items-end justify-between gap-3"><div class="flex flex-1 flex-wrap gap-3"><label class="min-w-52 flex-1 text-sm font-medium">Buscar<input v-model="search" placeholder="Placa, VIN o cliente" @input="onSearchInput"></label><label class="min-w-48 text-sm font-medium">Taller<select v-model="workshopId" @change="loadVehicles"><option value="">Todos los talleres</option><option v-for="workshop in workshopOptions" :key="workshop.id" :value="String(workshop.id)">{{ workshop.name }}</option></select></label></div><div class="flex gap-3"><button class="rounded-xl border border-lilac-200 px-4 py-3 text-sm font-semibold text-lilac-700" @click="emit('lookup')">Consultar vehículo</button><button class="rounded-xl bg-lilac-700 px-4 py-3 text-sm font-semibold text-white" @click="openForm">Registrar vehículo</button></div></div>
-    <div class="overflow-x-auto rounded-2xl border border-lilac-100 bg-white shadow-sm"><table class="min-w-full text-left text-sm"><thead class="bg-lilac-50 text-slate-600"><tr><th class="px-4 py-3 font-semibold">Cliente</th><th class="px-4 py-3 font-semibold">Taller</th><th class="px-4 py-3 font-semibold">Marca</th><th class="px-4 py-3 font-semibold">Modelo</th><th class="px-4 py-3 font-semibold">Año</th><th class="px-4 py-3 font-semibold">Placa</th><th class="px-4 py-3 font-semibold">VIN</th><th class="px-4 py-3 font-semibold">Status</th><th class="px-4 py-3 font-semibold">Acciones</th></tr></thead><tbody><tr v-if="listLoading"><td colspan="9" class="px-4 py-8 text-center text-slate-500">Cargando vehículos…</td></tr><tr v-else-if="!vehicles.length"><td colspan="9" class="px-4 py-8 text-center text-slate-500">No hay vehículos registrados.</td></tr><tr v-for="vehicle in vehicles" :key="vehicle.id" class="border-t border-lilac-100"><td class="px-4 py-3">{{ vehicle.cliente }}</td><td class="px-4 py-3">{{ vehicle.taller || 'Sin taller' }}</td><td class="px-4 py-3">{{ vehicle.marca }}</td><td class="px-4 py-3">{{ vehicle.modelo }}</td><td class="px-4 py-3">{{ vehicle.anio }}</td><td class="px-4 py-3">{{ vehicle.placa }}</td><td class="px-4 py-3 font-mono text-xs">{{ vehicle.vin }}</td><td class="px-4 py-3">{{ vehicle.status }}</td><td class="px-4 py-3"><div class="flex gap-3"><button class="font-semibold text-lilac-700" @click="openEdit(vehicle)">Editar</button><button class="font-semibold text-rose-700" @click="deleteVehicle(vehicle)">Eliminar</button></div></td></tr></tbody></table></div>
+    <div class="overflow-x-auto rounded-2xl border border-lilac-100 bg-white shadow-sm"><table class="min-w-full text-left text-sm"><thead class="bg-lilac-50 text-slate-600"><tr><th class="px-4 py-3 font-semibold">Cliente</th><th class="px-4 py-3 font-semibold">Taller</th><th class="px-4 py-3 font-semibold">Marca</th><th class="px-4 py-3 font-semibold">Modelo</th><th class="px-4 py-3 font-semibold">Año</th><th class="px-4 py-3 font-semibold">Placa</th><th class="px-4 py-3 font-semibold">VIN</th><th class="px-4 py-3 font-semibold">Status</th><th class="px-4 py-3 font-semibold">Acciones</th></tr></thead><tbody><tr v-if="listLoading"><td colspan="9" class="px-4 py-8 text-center text-slate-500">Cargando vehículos…</td></tr><tr v-else-if="!vehicles.length"><td colspan="9" class="px-4 py-8 text-center text-slate-500">No hay vehículos registrados.</td></tr><tr v-for="vehicle in vehicles" :key="vehicle.id" class="border-t border-lilac-100"><td class="px-4 py-3">{{ vehicle.cliente }}</td><td class="px-4 py-3">{{ vehicle.taller || 'Sin taller' }}</td><td class="px-4 py-3">{{ vehicle.marca }}</td><td class="px-4 py-3">{{ vehicle.modelo }}</td><td class="px-4 py-3">{{ vehicle.anio }}</td><td class="px-4 py-3">{{ vehicle.placa }}</td><td class="px-4 py-3 font-mono text-xs">{{ vehicle.vin }}</td><td class="px-4 py-3">{{ vehicle.status }}</td><td class="px-4 py-3"><div class="flex gap-3"><button class="font-semibold text-lilac-700" @click="openEdit(vehicle)">Editar</button><button class="font-semibold text-lilac-700" @click="transferVehicle(vehicle)">Transferir</button><button class="font-semibold text-rose-700" @click="deleteVehicle(vehicle)">Eliminar</button></div></td></tr></tbody></table></div>
   </section>
   <section v-else-if="mode === 'client'" class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="text-sm font-semibold text-lilac-700">Vehículos actuales</p><h3 class="text-xl font-bold">{{ client?.fullName }}</h3></div><div class="flex gap-3"><button class="rounded-xl bg-lilac-700 px-4 py-3 text-sm font-semibold text-white" @click="openForm">Asociar vehículo</button><button class="text-sm font-semibold text-lilac-700" @click="emit('back')">Volver</button></div></div>
