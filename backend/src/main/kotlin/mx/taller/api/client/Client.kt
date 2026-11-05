@@ -1,6 +1,7 @@
 package mx.taller.api.client
 
 import jakarta.persistence.*
+import mx.taller.api.status.Status
 import java.time.Instant
 import java.time.LocalDate
 
@@ -33,6 +34,10 @@ class Client(
   @Column(name = "postal_code", nullable = false, length = 10) var postalCode: String = "",
   // Referencia opcional para las futuras sucursales A y B; no existe catálogo de sucursales en esta fase.
   @Column(name = "branch_code", length = 1) var branchCode: String? = null,
+  @Column(name = "taller_id") var workshopId: Long? = null,
+  /** La columna textual estatus se conserva en MySQL para compatibilidad con los registros históricos. */
+  @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "status_id") var statusRecord: Status? = null,
+  @Lob @Column(name = "motivo_status", columnDefinition = "TEXT") var statusReason: String? = null,
   @Column(name = "created_by_user_id", nullable = false) var createdByUserId: Long = 0,
   @Column(name = "updated_by_user_id", nullable = false) var updatedByUserId: Long = 0,
   @Column(name = "created_at", nullable = false) var createdAt: Instant = Instant.now(),
@@ -43,4 +48,15 @@ interface ClientRepository : org.springframework.data.jpa.repository.JpaReposito
   fun findByEmail(email: String): Client?
   fun findByPhoneNormalized(phoneNormalized: String): Client?
   fun findByFullNameNormalizedAndBirthDate(fullNameNormalized: String, birthDate: LocalDate): Client?
+  fun countByWorkshopId(workshopId: Long): Long
+  @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where c.workshopId = :workshopId and s.value <> 'ELIMINADO'")
+  fun findAdministrationByWorkshopId(@org.springframework.data.repository.query.Param("workshopId") workshopId: Long, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<Client>
+  @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where c.workshopId is null and s.value <> 'ELIMINADO'")
+  fun findAdministrationWithoutWorkshop(pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<Client>
+  @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where c.workshopId = :workshopId and s.value <> 'ELIMINADO'")
+  fun findStatusByWorkshopId(@org.springframework.data.repository.query.Param("workshopId") workshopId: Long, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<Client>
+  @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where c.workshopId is null and s.value <> 'ELIMINADO'")
+  fun findStatusWithoutWorkshop(pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<Client>
+  @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where s.value = 'ACTIVO' order by c.fullName")
+  fun findActiveForVehicleRegistration(): List<Client>
 }

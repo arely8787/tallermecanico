@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.server.ResponseStatusException
+import mx.taller.api.postal.PostalCodeFacade
+import mx.taller.api.workshop.WorkshopFacade
+import mx.taller.api.status.StatusFacade
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
@@ -24,7 +27,7 @@ data class ClientCommand(
   val municipality: String,
   val state: String,
   val postalCode: String,
-  val branchCode: String?
+  val branchCode: String?, val workshopId: Long?
 )
 
 data class ClientView(
@@ -41,16 +44,21 @@ data class ClientView(
   val municipality: String,
   val state: String,
   val postalCode: String,
-  val branchCode: String?,
+  val branchCode: String?, val workshopId: Long?, val status: String,
   val photoUrl: String
 )
 
 data class ClientPhoto(val bytes: ByteArray, val contentType: String)
+data class ClientPageView(val data: List<ClientView>, val page: Int, val totalPages: Int, val totalRecords: Long)
+data class ClientStatusView(val id: Long, val fullName: String, val status: String, val statusDescription: String, val motivoStatus: String?)
+data class ClientStatusPageView(val data: List<ClientStatusView>, val page: Int, val totalPages: Int, val totalRecords: Long)
 
 @Service
-class ClientFacade(private val clients: ClientRepository) {
+class ClientFacade(private val clients: ClientRepository, private val postalCodes: PostalCodeFacade, private val workshops: WorkshopFacade, private val statuses: StatusFacade) {
   @Transactional
   fun create(command: ClientCommand, photo: MultipartFile, actorId: Long): ClientView {
+    if (command.workshopId == null) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar un taller")
+    workshops.requireActive(command.workshopId)
     val normalized = validate(command)
     assertNoDuplicate(normalized)
     val image = validatePhoto(photo, required = true)
@@ -75,6 +83,8 @@ class ClientFacade(private val clients: ClientRepository) {
           state = normalized.state,
           postalCode = normalized.postalCode,
           branchCode = normalized.branchCode,
+          workshopId = command.workshopId,
+          statusRecord = statuses.required(ACTIVE),
           createdByUserId = actorId,
           updatedByUserId = actorId,
           createdAt = now,
@@ -89,6 +99,7 @@ class ClientFacade(private val clients: ClientRepository) {
   @Transactional
   fun update(id: Long, command: ClientCommand, photo: MultipartFile?, actorId: Long): ClientView {
     val client = clients.findById(id).orElseThrow { notFound() }
+    if (command.workshopId != null) workshops.requireActive(command.workshopId)
     val normalized = validate(command)
     assertNoDuplicate(normalized, id)
     val image = validatePhoto(photo, required = false)
@@ -112,6 +123,7 @@ class ClientFacade(private val clients: ClientRepository) {
       state = normalized.state
       postalCode = normalized.postalCode
       branchCode = normalized.branchCode
+      workshopId = command.workshopId
       updatedByUserId = actorId
       updatedAt = Instant.now()
     }
@@ -124,6 +136,75 @@ class ClientFacade(private val clients: ClientRepository) {
 
   @Transactional(readOnly = true)
   fun list(): List<ClientView> = clients.findAll().map { it.toView() }
+
+  @Transactional(readOnly = true)
+  fun listActiveForVehicleRegistration(): List<ClientView> = clients.findActiveForVehicleRegistration().map { it.toView() }
+
+  @Transactional(readOnly = true)
+  fun get(id: Long): ClientView = clients.findById(id).orElseThrow { notFound() }.toView()
+
+  @Transactional(readOnly = true)
+  fun listForAdministration(workshopFilter: String, page: Int, size: Int, direction: String, sortField: String): ClientPageView {
+    if (page < 0) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La página debe ser un entero mayor o igual a 0")
+    if (size !in 1..10) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El tamaño de página debe estar entre 1 y 10")
+    val sortDirection = when (direction.lowercase(Locale.ROOT)) { "asc" -> org.springframework.data.domain.Sort.Direction.ASC; "desc" -> org.springframework.data.domain.Sort.Direction.DESC; else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El orden debe ser asc o desc") }
+    if (sortField !in setOf("fullName")) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El campo de orden no está permitido")
+    val pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(sortDirection, sortField))
+    val result = if (workshopFilter == "SIN_TALLER") clients.findAdministrationWithoutWorkshop(pageable) else {
+      val workshopId = workshopFilter.toLongOrNull()?.takeIf { it > 0 } ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar un taller válido")
+      workshops.requireExists(workshopId)
+      clients.findAdministrationByWorkshopId(workshopId, pageable)
+    }
+    return ClientPageView(result.content.map { it.toView() }, result.number, result.totalPages, result.totalElements)
+  }
+
+  @Transactional(readOnly = true)
+  fun listStatusForAdministration(workshopFilter: String, page: Int, size: Int): ClientStatusPageView {
+    if (page < 0) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La página debe ser un entero mayor o igual a 0")
+    if (size !in 1..10) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El tamaño de página debe estar entre 1 y 10")
+    val pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("fullName"))
+    val result = if (workshopFilter == "SIN_TALLER") clients.findStatusWithoutWorkshop(pageable) else {
+      val workshopId = workshopFilter.toLongOrNull()?.takeIf { it > 0 } ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar un taller válido")
+      workshops.requireExists(workshopId)
+      clients.findStatusByWorkshopId(workshopId, pageable)
+    }
+    return ClientStatusPageView(result.content.map { ClientStatusView(it.id!!, it.fullName, it.statusValue(), it.statusRecord?.description.orEmpty(), it.statusReason) }, result.number, result.totalPages, result.totalElements)
+  }
+
+  @Transactional
+  fun suspend(id: Long): ClientView {
+    return transition(id, SUSPENDED, null, canDelete = false)
+  }
+
+  @Transactional
+  fun reactivate(id: Long): ClientView {
+    return transition(id, ACTIVE, null, canDelete = false)
+  }
+
+  @Transactional
+  fun delete(id: Long) {
+    transition(id, DELETED, null, canDelete = true)
+  }
+
+  @Transactional
+  fun changeStatus(id: Long, targetStatus: String, reason: String?, canDelete: Boolean): ClientView = transition(id, targetStatus, reason, canDelete)
+
+  private fun transition(id: Long, targetStatus: String, reason: String?, canDelete: Boolean): ClientView {
+    val client = clients.findById(id).orElseThrow { notFound() }
+    val target = targetStatus.trim().uppercase(Locale.ROOT)
+    when (target) {
+      SUSPENDED -> if (client.statusValue() != ACTIVE) throw ResponseStatusException(HttpStatus.CONFLICT, "Solo se puede suspender un cliente con estatus ACTIVO")
+      ACTIVE -> if (client.statusValue() != SUSPENDED) throw ResponseStatusException(HttpStatus.CONFLICT, "Solo se puede reactivar un cliente con estatus SUSPENDIDO")
+      DELETED -> {
+        if (!canDelete) throw ResponseStatusException(HttpStatus.FORBIDDEN, "Solo un administrador puede eliminar clientes")
+        if (client.statusValue() == DELETED) throw ResponseStatusException(HttpStatus.CONFLICT, "El cliente ya está eliminado")
+      }
+      else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El estatus seleccionado no está permitido")
+    }
+    client.statusRecord = statuses.required(target)
+    if (reason != null) client.statusReason = reason.trim().ifBlank { null }
+    return clients.saveAndFlush(client).toView()
+  }
 
   @Transactional(readOnly = true)
   fun photo(id: Long): ClientPhoto {
@@ -153,7 +234,7 @@ class ClientFacade(private val clients: ClientRepository) {
     if (!POSTAL_CODE.matches(postalCode)) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El código postal debe contener 5 dígitos")
     val branch = command.branchCode?.trim()?.uppercase(Locale.ROOT)?.ifBlank { null }
     if (branch != null && branch !in setOf("A", "B")) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La sucursal debe ser A o B")
-    return NormalizedClient(
+    val normalized = NormalizedClient(
       fullName = required(command.fullName, "El nombre completo es obligatorio"),
       fullNameNormalized = normalize(command.fullName),
       alternativeContactName = command.alternativeContactName?.trim()?.ifBlank { null },
@@ -169,6 +250,8 @@ class ClientFacade(private val clients: ClientRepository) {
       branchCode = branch,
       birthDate = command.birthDate
     )
+    postalCodes.validateAddress(postalCode, normalized.state, normalized.municipality, normalized.neighborhood)
+    return normalized
   }
 
   private fun validatePhoto(photo: MultipartFile?, required: Boolean): ClientPhoto? {
@@ -192,7 +275,8 @@ class ClientFacade(private val clients: ClientRepository) {
   private fun duplicate(): Nothing = throw ResponseStatusException(HttpStatus.CONFLICT, "Posible cliente duplicado: correo, teléfono o nombre y fecha de nacimiento ya existen")
   private fun notFound(): ResponseStatusException = ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente no encontrado")
 
-  private fun Client.toView() = ClientView(id!!, fullName, alternativeContactName, age, birthDate, phone, occupation, email, street, neighborhood, municipality, state, postalCode, branchCode, "/api/clientes/$id/foto")
+  private fun Client.statusValue() = statusRecord?.value ?: ACTIVE
+  private fun Client.toView() = ClientView(id!!, fullName, alternativeContactName, age, birthDate, phone, occupation, email, street, neighborhood, municipality, state, postalCode, branchCode, workshopId, statusValue(), "/api/clientes/$id/foto")
 
   private data class NormalizedClient(
     val fullName: String, val fullNameNormalized: String, val alternativeContactName: String?, val phone: String,
@@ -206,5 +290,8 @@ class ClientFacade(private val clients: ClientRepository) {
     val POSTAL_CODE = Regex("^\\d{5}$")
     val PNG_SIGNATURE = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
     const val MAX_PHOTO_BYTES = 20L * 1024 * 1024
+    const val ACTIVE = "ACTIVO"
+    const val SUSPENDED = "SUSPENDIDO"
+    const val DELETED = "ELIMINADO"
   }
 }

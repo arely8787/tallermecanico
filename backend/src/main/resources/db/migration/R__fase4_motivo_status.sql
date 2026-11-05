@@ -1,0 +1,2 @@
+-- La migración repetible agrega motivo_status mediante PhaseThreeMigration,
+-- que consulta information_schema antes de emitir ALTER TABLE por compatibilidad con MySQL del contenedor.

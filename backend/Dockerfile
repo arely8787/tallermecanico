@@ -7,5 +7,6 @@ RUN mvn -q -DskipTests package
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/taller-api-0.0.1.jar app.jar
+COPY data ./data
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

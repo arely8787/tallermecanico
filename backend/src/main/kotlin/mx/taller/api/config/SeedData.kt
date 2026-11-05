@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 @Configuration
 class SeedData {
  @Bean fun seed(users: UserRepository, encoder: PasswordEncoder) = CommandLineRunner {
-   if (users.findByEmail("admin@taller.local") == null) users.save(User(name="Administrador inicial", email="admin@taller.local", passwordHash=encoder.encode("Admin123!"), role=Role.ADMIN, status=UserStatus.ACTIVE))
+   val password = System.getenv("SEED_ADMIN_PASSWORD") ?: return@CommandLineRunner
+   if (users.findByEmail("admin@taller.local") == null) users.save(User(name="Administrador inicial", email="admin@taller.local", passwordHash=encoder.encode(password), role=Role.ADMIN, status=UserStatus.ACTIVE))
  }
 }

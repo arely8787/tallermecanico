@@ -23,12 +23,11 @@ data class AssignRoleRequest(val role: Role, val status: UserStatus = UserStatus
 data class CreateEmployeeRequest(@field:NotBlank val name: String, @field:Email val email: String, @field:Size(min=8) val password: String, val role: Role)
 
 @RestController @RequestMapping("/api")
-class AuthController(private val users: UserRepository, private val encoder: PasswordEncoder, private val tokens: TokenService) {
+class AuthController(private val users: UserRepository, private val employeeFacade: UserFacade, private val encoder: PasswordEncoder, private val tokens: TokenService) {
   @PostMapping("/auth/login") fun login(@Valid @RequestBody body: LoginRequest): ResponseEntity<Any> {
     val user = users.findByEmail(body.email.lowercase()) ?: return unauthorized()
     if (!encoder.matches(body.password, user.passwordHash)) return unauthorized()
-    if (user.status != UserStatus.ACTIVE) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(mapOf("message" to "Tu cuenta está pendiente de aprobación o fue deshabilitada."))
-    if (user.role != Role.ADMIN) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(mapOf("message" to "El acceso inicial está reservado para el administrador."))
+    if (user.status != UserStatus.ACTIVE) return ResponseEntity.status(HttpStatus.FORBIDDEN).body(mapOf("message" to if (user.status == UserStatus.SUSPENDED) "Tu cuenta está suspendida. Contacta al administrador." else "Tu cuenta está pendiente de aprobación o fue deshabilitada."))
     val token=tokens.create(user.id!!, user.role)
     return ResponseEntity.ok(mapOf("token" to token, "user" to mapOf("id" to user.id, "name" to user.name, "email" to user.email, "role" to user.role)))
   }
@@ -51,12 +50,16 @@ class AuthController(private val users: UserRepository, private val encoder: Pas
     val employee = users.save(User(name = body.name.trim(), email = email, passwordHash = encoder.encode(body.password), role = body.role, status = UserStatus.ACTIVE))
     return ResponseEntity.status(HttpStatus.CREATED).body(mapOf("id" to employee.id, "message" to "Empleado creado correctamente"))
   }
-  @PreAuthorize("hasRole('ADMIN')") @GetMapping("/users") fun list() = users.findAll().map { mapOf("id" to it.id, "name" to it.name, "email" to it.email, "role" to it.role, "status" to it.status) }
+  @PreAuthorize("hasRole('ADMIN')") @GetMapping("/users") fun list() = employeeFacade.listEmployees().map { mapOf("id" to it.id, "name" to it.name, "email" to it.email, "role" to it.role, "status" to it.status) }
   @PreAuthorize("hasRole('ADMIN')") @PatchMapping("/users/{id}/role") fun assign(@PathVariable id: Long, @RequestBody body: AssignRoleRequest): ResponseEntity<Any> {
     if (body.role !in STAFF_ROLES) return ResponseEntity.badRequest().body(mapOf("message" to "Solo puedes asignar roles de empleado autorizados"))
     val user=users.findById(id).orElse(null) ?: return ResponseEntity.notFound().build()
     user.role=body.role; user.status=body.status; users.save(user); return ResponseEntity.ok(mapOf("message" to "Rol actualizado"))
   }
+  @PreAuthorize("hasRole('ADMIN')") @PatchMapping("/users/{id}/estatus") fun toggleStatus(@PathVariable id: Long, authentication: org.springframework.security.core.Authentication) = employeeFacade.toggleStatus(id, actorId(authentication)).view()
+  @PreAuthorize("hasRole('ADMIN')") @DeleteMapping("/users/{id}") fun delete(@PathVariable id: Long, authentication: org.springframework.security.core.Authentication): ResponseEntity<Void> { employeeFacade.delete(id, actorId(authentication)); return ResponseEntity.noContent().build() }
+  private fun actorId(authentication: org.springframework.security.core.Authentication): Long = authentication.principal as? Long ?: throw IllegalStateException("Usuario autenticado inválido")
+  private fun User.view() = mapOf("id" to id, "name" to name, "email" to email, "role" to role, "status" to status)
   private fun unauthorized(): ResponseEntity<Any> = ResponseEntity.status(HttpStatus.UNAUTHORIZED).body<Any>(mapOf("message" to "Correo o contraseña incorrectos"))
   private fun randomToken(): String { val bytes=ByteArray(32); SecureRandom().nextBytes(bytes); return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes) }
   private companion object { val STAFF_ROLES = setOf(Role.GERENTE, Role.AUXILIAR, Role.MECANICO, Role.RECEPCIONISTA) }
