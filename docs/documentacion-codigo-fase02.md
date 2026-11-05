@@ -1,8 +1,12 @@
 # Documentación objetiva del código existente
 
-## Alcance
+## Alcance histórico
 
-Esta documentación enumera las funciones y métodos creados actualmente en el repositorio. No describe código hipotético ni módulos que todavía no existen.
+Este documento conserva el inventario original de la primera entrega de fase 2. Sus descripciones corresponden a ese corte y no sustituyen el código vigente.
+
+## Estado actual
+
+El proyecto evolucionó a Vue con TypeScript, Kotlin/Spring Boot, talleres, catálogo SEPOMEX, estatus, vehículos, transferencia de propietario y consulta por VIN o placa. El acceso a clientes y vehículos se centraliza para ADMIN y RECEPCIONISTA; los clientes eliminados usan borrado suave mediante el catálogo de estatus. Para el alcance vigente, archivos principales y pendientes, consulta [`fase2.md`](../fase2.md). La documentación de la pantalla unificada de clientes está actualizada en [`documentacion-codigo-fase02-1.md`](documentacion-codigo-fase02-1.md).
 
 ## Backend: arranque
 
