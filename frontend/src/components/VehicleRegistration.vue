@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import Swal from 'sweetalert2'
 
+/** Administra altas, edición modal, estatus y transferencia de vehículos sin cambiar el VIN al editar. */
 const props = defineProps({ api: { type: Function, required: true }, client: { type: Object, default: null }, initialMode: { type: String, default: 'list' } })
 const emit = defineEmits(['back', 'saved', 'lookup'])
 const currentYear = new Date().getFullYear()
@@ -11,7 +12,7 @@ const brands = ref([]), models = ref([]), versions = ref([]), vehicles = ref([])
 const clientVehicles = ref([])
 const loading = ref(false), listLoading = ref(false), brandLoading = ref(false), modelLoading = ref(false), vinLoading = ref(false)
 const mode = ref(props.client ? props.initialMode : 'list'), search = ref(''), workshopId = ref(''), yearTouched = ref(false)
-const chosenModel = ref(null), selectedBrandInfo = ref(null), editingId = ref(null), lockedClient = ref(null)
+const chosenModel = ref(null), selectedBrandInfo = ref(null), editingId = ref(null), lockedClient = ref(null), editModalOpen = ref(false)
 const brandCache = new Map(), modelCache = new Map(), versionCache = new Map()
 let brandTimer, modelTimer, searchTimer, keepModelOnBrandChange = false
 const colorOptions = ['Blanco', 'Negro', 'Gris', 'Plata', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Café', 'Beige', 'Vino', 'Dorado', 'Morado', 'Otro']
@@ -159,7 +160,8 @@ function resetForm() {
   models.value = []; versions.value = []; chosenModel.value = null; selectedBrandInfo.value = null; lockedClient.value = null; editingId.value = null; yearTouched.value = false
 }
 function openForm() { resetForm(); mode.value = 'form'; loadActiveClients() }
-function cancelForm() { if (props.client) { resetForm(); mode.value = props.initialMode === 'client' ? 'client' : 'form'; if (mode.value === 'client') loadClientVehicles() } else { resetForm(); mode.value = 'list' } }
+function cancelForm() { if (editModalOpen.value) { editModalOpen.value = false; resetForm(); return } if (props.client) { resetForm(); mode.value = props.initialMode === 'client' ? 'client' : 'form'; if (mode.value === 'client') loadClientVehicles() } else { resetForm(); mode.value = 'list' } }
+/** Abre la ficha de edición en un modal y conserva bloqueados el VIN y el propietario. */
 async function openEdit(vehicle) {
   try {
     const detail = await props.api(`/api/vehiculos/${vehicle.id}`, null, 'GET')
@@ -170,7 +172,7 @@ async function openEdit(vehicle) {
     if (!brands.value.some(brand => brand.id === detail.marcaId)) brands.value = [...brands.value, { id: detail.marcaId, nombre: detail.marca }]
     selectedBrandInfo.value = { id: detail.marcaId, nombre: detail.marca }
     chosenModel.value = { id: detail.modeloId, nombre: detail.modelo, marcaId: detail.marcaId, marca: detail.marca, anios: [detail.anio] }
-    models.value = [chosenModel.value]; await loadVersions(); mode.value = 'form'
+    models.value = [chosenModel.value]; await loadVersions(); editModalOpen.value = true
   } catch (error) { await showError(error, 'No se pudo cargar el vehículo') }
 }
 async function deleteVehicle(vehicle) {
@@ -181,6 +183,26 @@ async function deleteVehicle(vehicle) {
     await Swal.fire({ icon: 'success', title: 'Vehículo eliminado', confirmButtonColor: '#7e22ce' })
     await loadVehicles()
   } catch (error) { await showError(error, 'No se pudo eliminar el vehículo') }
+}
+/** Suspende o reactiva el vehículo después de confirmar la acción que cambia su estatus. */
+async function changeVehicleStatus(vehicle) {
+  const deactivating = vehicle.status === 'ACTIVO'
+  const target = deactivating ? 'SUSPENDIDO' : 'ACTIVO'
+  const result = await Swal.fire({
+    icon: deactivating ? 'warning' : 'question',
+    title: deactivating ? '¿Desactivar vehículo?' : '¿Activar vehículo?',
+    text: deactivating ? 'El vehículo no se eliminará y podrás activarlo de nuevo inmediatamente.' : 'El vehículo volverá a estar activo.',
+    showCancelButton: true,
+    confirmButtonText: deactivating ? 'Sí, desactivar' : 'Sí, activar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#7e22ce'
+  })
+  if (!result.isConfirmed) return
+  try {
+    await props.api(`/api/vehiculos/${vehicle.id}/estatus`, { status: target }, 'PATCH')
+    await Swal.fire({ icon: 'success', title: target === 'ACTIVO' ? 'Vehículo activado' : 'Vehículo desactivado', confirmButtonColor: '#7e22ce' })
+    await loadVehicles()
+  } catch (error) { await showError(error, 'No se pudo cambiar el estatus del vehículo') }
 }
 /**
  * Transfiere el vehículo al cliente activo elegido y conserva la vista actual.
@@ -218,8 +240,8 @@ async function save() {
   try {
     const isEdit = Boolean(editingId.value)
     await props.api(isEdit ? `/api/vehiculos/${editingId.value}` : '/api/vehiculos', { ...form, anio: Number(form.anio), kilometraje: form.kilometraje === '' ? null : Number(form.kilometraje), clienteId: currentClient.value.id }, isEdit ? 'PUT' : 'POST')
-    await Swal.fire({ icon: 'success', title: isEdit ? 'Vehículo actualizado' : 'Vehículo registrado', confirmButtonColor: '#7e22ce' })
-    resetForm(); mode.value = props.client ? (props.initialMode === 'client' ? 'client' : 'form') : 'list'
+    await Swal.fire({ icon: 'success', title: isEdit ? 'Ficha actualizada' : 'Vehículo registrado', text: isEdit ? 'Los datos se validaron y guardaron correctamente.' : undefined, confirmButtonColor: '#7e22ce' })
+    editModalOpen.value = false; resetForm(); mode.value = props.client ? (props.initialMode === 'client' ? 'client' : 'form') : 'list'
     if (mode.value === 'client') await loadClientVehicles(); else await loadVehicles()
     emit('saved')
   } catch (error) { await showError(error) } finally { loading.value = false }
@@ -246,13 +268,15 @@ onMounted(async () => {
 <template>
   <section v-if="mode === 'list'" class="space-y-5">
     <div class="flex flex-wrap items-end justify-between gap-3"><div class="flex flex-1 flex-wrap gap-3"><label class="min-w-52 flex-1 text-sm font-medium">Buscar<input v-model="search" placeholder="Placa, VIN o cliente" @input="onSearchInput"></label><label class="min-w-48 text-sm font-medium">Taller<select v-model="workshopId" @change="loadVehicles"><option value="">Todos los talleres</option><option v-for="workshop in workshopOptions" :key="workshop.id" :value="String(workshop.id)">{{ workshop.name }}</option></select></label></div><div class="flex gap-3"><button class="rounded-xl border border-lilac-200 px-4 py-3 text-sm font-semibold text-lilac-700" @click="emit('lookup')">Consultar vehículo</button><button class="rounded-xl bg-lilac-700 px-4 py-3 text-sm font-semibold text-white" @click="openForm">Registrar vehículo</button></div></div>
-    <div class="overflow-x-auto rounded-2xl border border-lilac-100 bg-white shadow-sm"><table class="min-w-full text-left text-sm"><thead class="bg-lilac-50 text-slate-600"><tr><th class="px-4 py-3 font-semibold">Cliente</th><th class="px-4 py-3 font-semibold">Taller</th><th class="px-4 py-3 font-semibold">Marca</th><th class="px-4 py-3 font-semibold">Modelo</th><th class="px-4 py-3 font-semibold">Año</th><th class="px-4 py-3 font-semibold">Placa</th><th class="px-4 py-3 font-semibold">VIN</th><th class="px-4 py-3 font-semibold">Status</th><th class="px-4 py-3 font-semibold">Acciones</th></tr></thead><tbody><tr v-if="listLoading"><td colspan="9" class="px-4 py-8 text-center text-slate-500">Cargando vehículos…</td></tr><tr v-else-if="!vehicles.length"><td colspan="9" class="px-4 py-8 text-center text-slate-500">No hay vehículos registrados.</td></tr><tr v-for="vehicle in vehicles" :key="vehicle.id" class="border-t border-lilac-100"><td class="px-4 py-3">{{ vehicle.cliente }}</td><td class="px-4 py-3">{{ vehicle.taller || 'Sin taller' }}</td><td class="px-4 py-3">{{ vehicle.marca }}</td><td class="px-4 py-3">{{ vehicle.modelo }}</td><td class="px-4 py-3">{{ vehicle.anio }}</td><td class="px-4 py-3">{{ vehicle.placa }}</td><td class="px-4 py-3 font-mono text-xs">{{ vehicle.vin }}</td><td class="px-4 py-3">{{ vehicle.status }}</td><td class="px-4 py-3"><div class="flex gap-3"><button class="font-semibold text-lilac-700" @click="openEdit(vehicle)">Editar</button><button class="font-semibold text-lilac-700" @click="transferVehicle(vehicle)">Transferir</button><button class="font-semibold text-rose-700" @click="deleteVehicle(vehicle)">Eliminar</button></div></td></tr></tbody></table></div>
+    <div class="overflow-x-auto rounded-2xl border border-lilac-100 bg-white shadow-sm"><table class="min-w-full text-left text-sm"><thead class="bg-lilac-50 text-slate-600"><tr><th class="px-4 py-3 font-semibold">Cliente</th><th class="px-4 py-3 font-semibold">Taller</th><th class="px-4 py-3 font-semibold">Marca</th><th class="px-4 py-3 font-semibold">Modelo</th><th class="px-4 py-3 font-semibold">Año</th><th class="px-4 py-3 font-semibold">Placa</th><th class="px-4 py-3 font-semibold">VIN</th><th class="px-4 py-3 font-semibold">Status</th><th class="px-4 py-3 font-semibold">Acciones</th></tr></thead><tbody><tr v-if="listLoading"><td colspan="9" class="px-4 py-8 text-center text-slate-500">Cargando vehículos…</td></tr><tr v-else-if="!vehicles.length"><td colspan="9" class="px-4 py-8 text-center text-slate-500">No hay vehículos registrados.</td></tr><tr v-for="vehicle in vehicles" :key="vehicle.id" class="border-t border-lilac-100"><td class="px-4 py-3">{{ vehicle.cliente }}</td><td class="px-4 py-3">{{ vehicle.taller || 'Sin taller' }}</td><td class="px-4 py-3">{{ vehicle.marca }}</td><td class="px-4 py-3">{{ vehicle.modelo }}</td><td class="px-4 py-3">{{ vehicle.anio }}</td><td class="px-4 py-3">{{ vehicle.placa }}</td><td class="px-4 py-3 font-mono text-xs">{{ vehicle.vin }}</td><td class="px-4 py-3">{{ vehicle.status }}</td><td class="px-4 py-3"><div class="flex flex-wrap gap-3"><button class="font-semibold text-lilac-700" @click="openEdit(vehicle)">Editar</button><button class="font-semibold text-lilac-700" @click="transferVehicle(vehicle)">Transferir</button><button v-if="vehicle.status === 'ACTIVO' || vehicle.status === 'SUSPENDIDO'" class="font-semibold text-amber-700" @click="changeVehicleStatus(vehicle)">{{ vehicle.status === 'ACTIVO' ? 'Desactivar' : 'Activar' }}</button><button class="font-semibold text-rose-700" @click="deleteVehicle(vehicle)">Eliminar</button></div></td></tr></tbody></table></div>
   </section>
   <section v-else-if="mode === 'client'" class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3"><div><p class="text-sm font-semibold text-lilac-700">Vehículos actuales</p><h3 class="text-xl font-bold">{{ client?.fullName }}</h3></div><div class="flex gap-3"><button class="rounded-xl bg-lilac-700 px-4 py-3 text-sm font-semibold text-white" @click="openForm">Asociar vehículo</button><button class="text-sm font-semibold text-lilac-700" @click="emit('back')">Volver</button></div></div>
     <div class="overflow-x-auto rounded-2xl border border-lilac-100 bg-white shadow-sm"><table class="min-w-full text-left text-sm"><thead class="bg-lilac-50 text-slate-600"><tr><th class="px-4 py-3 font-semibold">Marca</th><th class="px-4 py-3 font-semibold">Modelo</th><th class="px-4 py-3 font-semibold">Año</th><th class="px-4 py-3 font-semibold">Placa</th><th class="px-4 py-3 font-semibold">VIN</th><th class="px-4 py-3 font-semibold">Acciones</th></tr></thead><tbody><tr v-if="listLoading"><td colspan="6" class="px-4 py-8 text-center text-slate-500">Consultando vehículos…</td></tr><tr v-else-if="!clientVehicles.length"><td colspan="6" class="px-4 py-8 text-center text-slate-500">Este cliente no tiene vehículos actuales.</td></tr><tr v-for="vehicle in clientVehicles" :key="vehicle.id" class="border-t border-lilac-100"><td class="px-4 py-3">{{ vehicle.marca }}</td><td class="px-4 py-3">{{ vehicle.modelo }}</td><td class="px-4 py-3">{{ vehicle.anio }}</td><td class="px-4 py-3">{{ vehicle.placa }}</td><td class="px-4 py-3 font-mono text-xs">{{ vehicle.vin }}</td><td class="px-4 py-3"><button class="font-semibold text-lilac-700" @click="transferVehicle(vehicle)">Cambiar propietario</button></td></tr></tbody></table></div>
   </section>
-  <section v-else class="space-y-5">
+  <section v-if="mode === 'form' || editModalOpen" :class="editModalOpen ? 'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4' : 'space-y-5'">
+    <div :class="editModalOpen ? 'max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl' : ''">
+    <div v-if="editModalOpen" class="mb-5 flex items-center justify-between"><div><p class="text-sm font-semibold text-lilac-700">Administración de vehículos</p><h3 class="text-xl font-bold">Editar ficha</h3></div><button type="button" class="text-sm font-semibold text-lilac-700" @click="cancelForm">Cerrar</button></div>
     <div v-if="currentClient && (client || lockedClient)" class="rounded-2xl border border-lilac-100 bg-white p-4 text-sm shadow-sm"><p class="font-semibold">Cliente</p><p class="text-slate-600">{{ currentClient.fullName }}<span v-if="currentClient.email"> · {{ currentClient.email }}</span></p></div>
     <form class="space-y-4" @submit.prevent="save">
       <label v-if="!client && !lockedClient" class="block text-sm font-medium">Cliente<select v-model="selectedClientId" required><option value="" disabled>Selecciona un cliente ACTIVO</option><option v-for="availableClient in clients" :key="availableClient.id" :value="String(availableClient.id)">{{ availableClient.fullName }} · {{ availableClient.email }}</option></select></label>
@@ -260,7 +284,7 @@ onMounted(async () => {
         <label class="block text-sm font-medium">Año<input v-model="form.anio" list="vehicle-years" type="text" inputmode="numeric" maxlength="4" required @blur="onYearBlur"><datalist id="vehicle-years"><option v-for="year in yearOptions" :key="year" :value="year"/></datalist><span v-if="yearError" class="mt-1 block text-xs text-rose-600">{{ yearError }}</span></label>
         <label class="block text-sm font-medium">Marca<input v-model="form.marca" list="vehicle-brands" required maxlength="100" @focus="onBrandFocus" @input="onBrandInput" @change="selectBrand"><span v-if="brandLoading" class="mt-1 block text-xs text-slate-500">Cargando…</span><datalist id="vehicle-brands"><option v-for="brand in filteredBrands" :key="brand.id" :value="brand.nombre"/></datalist></label>
         <label class="block text-sm font-medium">Modelo<input v-model="form.modelo" list="vehicle-models" required maxlength="120" @focus="loadModels" @input="onModelInput" @change="selectModel"><span v-if="modelLoading" class="mt-1 block text-xs text-slate-500">Cargando…</span><datalist id="vehicle-models"><option v-for="model in models" :key="`${model.id}-${model.marcaId}`" :value="model.nombre" :label="model.marca ? `${model.nombre} · ${model.marca}` : model.nombre"/></datalist></label>
-        <label class="block text-sm font-medium">VIN<input v-model="form.vin" required minlength="17" maxlength="17" @input="form.vin = form.vin.toUpperCase()" @blur="decodeVin"><span v-if="vinLoading" class="mt-1 block text-xs text-slate-500">Consultando VIN…</span></label>
+        <label class="block text-sm font-medium">VIN<input v-model="form.vin" required minlength="17" maxlength="17" :readonly="Boolean(editingId)" :class="editingId ? 'cursor-not-allowed bg-slate-100 text-slate-500' : ''" @input="form.vin = form.vin.toUpperCase()" @blur="decodeVin"><span v-if="editingId" class="mt-1 block text-xs text-slate-500">El VIN no se puede modificar.</span><span v-else-if="vinLoading" class="mt-1 block text-xs text-slate-500">Consultando VIN…</span></label>
         <label class="block text-sm font-medium">Número de serie<input v-model="form.numeroSerie" required minlength="5" maxlength="20" @input="form.numeroSerie = form.numeroSerie.toUpperCase()"></label>
         <label class="block text-sm font-medium">Placa<input v-model="form.placa" required minlength="5" maxlength="10" @input="form.placa = form.placa.toUpperCase().replace(/[ -]/g, '')"></label>
         <label class="block text-sm font-medium">Versión<input v-model="form.version" list="vehicle-versions" required maxlength="100" @focus="loadVersions" @input="onVersionInput"><datalist id="vehicle-versions"><option v-for="version in versions" :key="version" :value="version"/></datalist></label>
@@ -269,5 +293,6 @@ onMounted(async () => {
       </div>
       <button :disabled="loading" class="w-full rounded-xl bg-lilac-700 py-3 font-semibold text-white">{{ loading ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Registrar vehículo' }}</button><button type="button" class="w-full text-sm font-semibold text-lilac-700" @click="cancelForm">Cancelar</button>
     </form>
+    </div>
   </section>
 </template>

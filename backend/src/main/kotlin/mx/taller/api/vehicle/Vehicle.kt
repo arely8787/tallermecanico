@@ -149,6 +149,8 @@ data class VehicleRequest(
   @field:Min(0) val kilometraje: Int?, @field:NotNull val clienteId: Long
 )
 data class VehicleView(val id: Long, val vin: String, val numeroSerie: String, val placa: String, val marca: String, val modelo: String, val anio: Int, val version: String, val color: String, val kilometraje: Int?, val clienteId: Long, val status: String)
+/** Entrada limitada a la suspensión o reactivación de un vehículo existente. */
+data class VehicleStatusRequest(@field:Pattern(regexp = "ACTIVO|SUSPENDIDO") val status: String)
 data class VehicleTransferRequest(@field:NotNull val clienteDestinoId: Long)
 data class VehicleTransferView(val id: Long, val clienteId: Long, val cliente: String, val transferred: Boolean)
 
@@ -309,6 +311,10 @@ class VehicleFacade(
     } catch (_: DataIntegrityViolationException) { duplicate() }
   }
 
+  /**
+   * Actualiza la ficha sin permitir cambiar su VIN ni su propietario.
+   * Conserva las validaciones de formato y duplicados sobre los demás identificadores.
+   */
   @Transactional
   fun update(id: Long, request: VehicleRequest): VehicleView {
     val vehicle = vehicles.findById(id).orElseThrow { notFound() }
@@ -316,12 +322,13 @@ class VehicleFacade(
     if (request.clienteId != client.id) invalid("No se puede cambiar el cliente de un vehículo")
     if (client.statusRecord?.value != "ACTIVO") throw ResponseStatusException(HttpStatus.CONFLICT, "Solo se puede registrar un vehículo para un cliente ACTIVO")
     val normalized = validate(request)
+    if (normalized.vin != vehicle.vin) invalid("El VIN no se puede modificar")
     if (vehicles.existsByVinAndIdNot(normalized.vin, id) || vehicles.existsBySerialNumberAndIdNot(normalized.serial, id) || vehicles.existsByPlacaAndIdNot(normalized.plate, id)) duplicate()
     val brand = catalog.resolveBrand(request.marca)
     val model = catalog.resolveModel(brand, request.modelo)
     return try {
       vehicle.apply {
-        vin = normalized.vin; serialNumber = normalized.serial; placa = normalized.plate; this.brand = brand; this.model = model
+        serialNumber = normalized.serial; placa = normalized.plate; this.brand = brand; this.model = model
         anio = request.anio; version = normalized.version; color = normalized.color; kilometraje = request.kilometraje
       }
       vehicles.saveAndFlush(vehicle).view()
@@ -334,6 +341,19 @@ class VehicleFacade(
     if (vehicle.status?.value == "ELIMINADO") return
     vehicle.status = statuses.required("ELIMINADO")
     vehicles.saveAndFlush(vehicle)
+  }
+
+  /**
+   * Suspende o reactiva un vehículo sin borrarlo.
+   * Los registros eliminados no pueden volver a activarse mediante este flujo.
+   */
+  @Transactional
+  fun changeStatus(id: Long, targetStatus: String): VehicleView {
+    val vehicle = vehicles.findById(id).orElseThrow { notFound() }
+    if (vehicle.status?.value == "ELIMINADO") throw ResponseStatusException(HttpStatus.CONFLICT, "No se puede cambiar el estatus de un vehículo eliminado")
+    if (vehicle.status?.value == targetStatus) return vehicle.view()
+    vehicle.status = statuses.required(targetStatus)
+    return vehicles.saveAndFlush(vehicle).view()
   }
 
   @Transactional
@@ -398,6 +418,8 @@ class VehicleController(private val facade: VehicleFacade, private val catalog: 
   @PostMapping fun create(@Valid @RequestBody request: VehicleRequest) = org.springframework.http.ResponseEntity.status(HttpStatus.CREATED).body(facade.create(request))
   @PutMapping("/{id}") fun update(@PathVariable id: Long, @Valid @RequestBody request: VehicleRequest) = facade.update(id, request)
   @PatchMapping("/{id}/eliminar") fun softDelete(@PathVariable id: Long): org.springframework.http.ResponseEntity<Void> { facade.softDelete(id); return org.springframework.http.ResponseEntity.noContent().build() }
+  /** Suspende o reactiva un vehículo; solo acepta los estatus ACTIVO y SUSPENDIDO. */
+  @PatchMapping("/{id}/estatus") fun changeStatus(@PathVariable id: Long, @Valid @RequestBody request: VehicleStatusRequest) = facade.changeStatus(id, request.status)
   @PatchMapping("/{id}/transferir") fun transfer(@PathVariable id: Long, @Valid @RequestBody request: VehicleTransferRequest, authentication: Authentication) = facade.transfer(id, request, actorId(authentication))
 
   private fun actorId(authentication: Authentication): Long = authentication.principal as? Long ?: throw IllegalStateException("Usuario autenticado inválido")
