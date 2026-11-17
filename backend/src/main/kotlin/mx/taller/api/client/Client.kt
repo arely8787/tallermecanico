@@ -44,19 +44,52 @@ class Client(
   @Column(name = "updated_at", nullable = false) var updatedAt: Instant = Instant.now()
 )
 
+data class ClientListRow(
+  val id: Long,
+  val fullName: String,
+  val alternativeContactName: String?,
+  val age: Int,
+  val birthDate: LocalDate,
+  val phone: String,
+  val occupation: String,
+  val email: String,
+  val street: String,
+  val neighborhood: String,
+  val municipality: String,
+  val state: String,
+  val postalCode: String,
+  val branchCode: String?,
+  val workshopId: Long?,
+  val status: String
+)
+
 interface ClientRepository : org.springframework.data.jpa.repository.JpaRepository<Client, Long> {
   fun findByEmail(email: String): Client?
   fun findByPhoneNormalized(phoneNormalized: String): Client?
   fun findByFullNameNormalizedAndBirthDate(fullNameNormalized: String, birthDate: LocalDate): Client?
   fun countByWorkshopId(workshopId: Long): Long
-  @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where c.workshopId = :workshopId and s.value <> 'ELIMINADO'")
-  fun findAdministrationByWorkshopId(@org.springframework.data.repository.query.Param("workshopId") workshopId: Long, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<Client>
-  @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where c.workshopId is null and s.value <> 'ELIMINADO'")
-  fun findAdministrationWithoutWorkshop(pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<Client>
+  @org.springframework.data.jpa.repository.Query("""
+    select new mx.taller.api.client.ClientListRow(c.id, c.fullName, c.alternativeContactName, c.age, c.birthDate, c.phone, c.occupation, c.email, c.street, c.neighborhood, c.municipality, c.state, c.postalCode, c.branchCode, c.workshopId, coalesce(s.value, 'ACTIVO'))
+    from Client c left join c.statusRecord s
+  """)
+  fun findList(pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<ClientListRow>
+  @org.springframework.data.jpa.repository.Query("""
+    select new mx.taller.api.client.ClientListRow(c.id, c.fullName, c.alternativeContactName, c.age, c.birthDate, c.phone, c.occupation, c.email, c.street, c.neighborhood, c.municipality, c.state, c.postalCode, c.branchCode, c.workshopId, s.value)
+    from Client c join c.statusRecord s where c.workshopId = :workshopId and s.value <> 'ELIMINADO'
+  """)
+  fun findAdministrationByWorkshopId(@org.springframework.data.repository.query.Param("workshopId") workshopId: Long, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<ClientListRow>
+  @org.springframework.data.jpa.repository.Query("""
+    select new mx.taller.api.client.ClientListRow(c.id, c.fullName, c.alternativeContactName, c.age, c.birthDate, c.phone, c.occupation, c.email, c.street, c.neighborhood, c.municipality, c.state, c.postalCode, c.branchCode, c.workshopId, s.value)
+    from Client c join c.statusRecord s where c.workshopId is null and s.value <> 'ELIMINADO'
+  """)
+  fun findAdministrationWithoutWorkshop(pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<ClientListRow>
   @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where c.workshopId = :workshopId and s.value <> 'ELIMINADO'")
   fun findStatusByWorkshopId(@org.springframework.data.repository.query.Param("workshopId") workshopId: Long, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<Client>
   @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where c.workshopId is null and s.value <> 'ELIMINADO'")
   fun findStatusWithoutWorkshop(pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<Client>
-  @org.springframework.data.jpa.repository.Query("select c from Client c join c.statusRecord s where s.value = 'ACTIVO' order by c.fullName")
-  fun findActiveForVehicleRegistration(): List<Client>
+  @org.springframework.data.jpa.repository.Query("""
+    select new mx.taller.api.client.ClientListRow(c.id, c.fullName, c.alternativeContactName, c.age, c.birthDate, c.phone, c.occupation, c.email, c.street, c.neighborhood, c.municipality, c.state, c.postalCode, c.branchCode, c.workshopId, s.value)
+    from Client c join c.statusRecord s where s.value = 'ACTIVO' order by c.fullName
+  """)
+  fun findActiveForVehicleRegistration(): List<ClientListRow>
 }

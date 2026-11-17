@@ -48,7 +48,7 @@ class ClientController(private val facade: ClientFacade) {
     facade.update(id, request.toCommand(), photo, actorId(authentication))
 
   @GetMapping
-  fun list(): List<ClientView> = facade.list()
+  fun list(@RequestParam(defaultValue = "0") page: Int, @RequestParam(defaultValue = "20") size: Int): ClientPageView = facade.list(page, size)
 
   @GetMapping("/activos")
   fun listActive(): List<ClientView> = facade.listActiveForVehicleRegistration()
@@ -70,7 +70,7 @@ class ClientController(private val facade: ClientFacade) {
 @PreAuthorize("@accessPolicy.canManageClients(authentication)")
 class ClientAdministrationController(private val facade: ClientFacade, private val accessPolicy: mx.taller.api.security.AccessPolicy) {
   @GetMapping
-  fun list(@RequestParam tallerId: String, @RequestParam(defaultValue = "0") page: Int, @RequestParam(defaultValue = "10") size: Int, @RequestParam(defaultValue = "asc") order: String, @RequestParam(defaultValue = "fullName") sort: String): ClientPageView = facade.listForAdministration(tallerId, page, size, order, sort)
+  fun list(@RequestParam tallerId: String, @RequestParam(defaultValue = "0") page: Int, @RequestParam(defaultValue = "20") size: Int, @RequestParam(defaultValue = "asc") order: String, @RequestParam(defaultValue = "fullName") sort: String): ClientPageView = facade.listForAdministration(tallerId, page, size, order, sort)
 
   @PatchMapping("/{id}/suspender") fun suspend(@PathVariable id: Long): ClientView = facade.suspend(id)
   @PatchMapping("/{id}/reactivar") fun reactivate(@PathVariable id: Long): ClientView = facade.reactivate(id)

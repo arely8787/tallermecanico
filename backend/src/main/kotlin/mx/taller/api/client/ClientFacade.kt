@@ -135,7 +135,11 @@ class ClientFacade(private val clients: ClientRepository, private val postalCode
   }
 
   @Transactional(readOnly = true)
-  fun list(): List<ClientView> = clients.findAll().map { it.toView() }
+  fun list(page: Int, size: Int): ClientPageView {
+    val pageable = clientPageRequest(page, size)
+    val result = clients.findList(pageable)
+    return ClientPageView(result.content.map { it.toView() }, result.number, result.totalPages, result.totalElements)
+  }
 
   @Transactional(readOnly = true)
   fun listActiveForVehicleRegistration(): List<ClientView> = clients.findActiveForVehicleRegistration().map { it.toView() }
@@ -145,11 +149,9 @@ class ClientFacade(private val clients: ClientRepository, private val postalCode
 
   @Transactional(readOnly = true)
   fun listForAdministration(workshopFilter: String, page: Int, size: Int, direction: String, sortField: String): ClientPageView {
-    if (page < 0) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La página debe ser un entero mayor o igual a 0")
-    if (size !in 1..10) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El tamaño de página debe estar entre 1 y 10")
-    val sortDirection = when (direction.lowercase(Locale.ROOT)) { "asc" -> org.springframework.data.domain.Sort.Direction.ASC; "desc" -> org.springframework.data.domain.Sort.Direction.DESC; else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El orden debe ser asc o desc") }
     if (sortField !in setOf("fullName")) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El campo de orden no está permitido")
-    val pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(sortDirection, sortField))
+    val sortDirection = when (direction.lowercase(Locale.ROOT)) { "asc" -> org.springframework.data.domain.Sort.Direction.ASC; "desc" -> org.springframework.data.domain.Sort.Direction.DESC; else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El orden debe ser asc o desc") }
+    val pageable = clientPageRequest(page, size, org.springframework.data.domain.Sort.by(sortDirection, sortField))
     val result = if (workshopFilter == "SIN_TALLER") clients.findAdministrationWithoutWorkshop(pageable) else {
       val workshopId = workshopFilter.toLongOrNull()?.takeIf { it > 0 } ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar un taller válido")
       workshops.requireExists(workshopId)
@@ -161,7 +163,7 @@ class ClientFacade(private val clients: ClientRepository, private val postalCode
   @Transactional(readOnly = true)
   fun listStatusForAdministration(workshopFilter: String, page: Int, size: Int): ClientStatusPageView {
     if (page < 0) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La página debe ser un entero mayor o igual a 0")
-    if (size !in 1..10) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El tamaño de página debe estar entre 1 y 10")
+    if (size !in 1..100) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El tamaño de página debe estar entre 1 y 100")
     val pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("fullName"))
     val result = if (workshopFilter == "SIN_TALLER") clients.findStatusWithoutWorkshop(pageable) else {
       val workshopId = workshopFilter.toLongOrNull()?.takeIf { it > 0 } ?: throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes seleccionar un taller válido")
@@ -277,6 +279,13 @@ class ClientFacade(private val clients: ClientRepository, private val postalCode
 
   private fun Client.statusValue() = statusRecord?.value ?: ACTIVE
   private fun Client.toView() = ClientView(id!!, fullName, alternativeContactName, age, birthDate, phone, occupation, email, street, neighborhood, municipality, state, postalCode, branchCode, workshopId, statusValue(), "/api/clientes/$id/foto")
+  private fun ClientListRow.toView() = ClientView(id, fullName, alternativeContactName, age, birthDate, phone, occupation, email, street, neighborhood, municipality, state, postalCode, branchCode, workshopId, status, "/api/clientes/$id/foto")
+
+  private fun clientPageRequest(page: Int, size: Int, sort: org.springframework.data.domain.Sort = org.springframework.data.domain.Sort.by("fullName")): org.springframework.data.domain.Pageable {
+    if (page < 0) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "La página debe ser un entero mayor o igual a 0")
+    if (size !in 1..100) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "El tamaño de página debe estar entre 1 y 100")
+    return org.springframework.data.domain.PageRequest.of(page, size, sort)
+  }
 
   private data class NormalizedClient(
     val fullName: String, val fullNameNormalized: String, val alternativeContactName: String?, val phone: String,
