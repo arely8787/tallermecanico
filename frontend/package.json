@@ -13,8 +13,11 @@
     "@vitejs/plugin-vue": "latest",
     "sweetalert2": "latest",
     "tailwindcss": "latest",
-    "vite": "latest",
+    "vite": "8.3.8",
     "vue": "latest"
+  },
+  "overrides": {
+    "source-map-js": "1.2.2"
   },
   "devDependencies": {
     "typescript": "^6.0.3",
