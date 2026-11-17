@@ -1,6 +1,7 @@
 services:
   mysql:
     image: mysql:8.4
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
     container_name: taller-mysql
     restart: unless-stopped
     environment:
@@ -35,7 +36,7 @@ services:
     profiles: ["full"]
     restart: on-failure
     environment:
-      DB_URL: jdbc:mysql://host.docker.internal:3306/taller?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      DB_URL: jdbc:mysql://host.docker.internal:3306/taller?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_0900_ai_ci
       DB_USER: taller_user
       DB_PASSWORD: taller_pass
     extra_hosts:

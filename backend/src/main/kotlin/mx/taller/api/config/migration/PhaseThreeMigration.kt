@@ -12,7 +12,11 @@ class PhaseThreeMigration(private val jdbc: JdbcTemplate) : CommandLineRunner {
     listOf("R__fase3_status_vehiculos.sql", "R__fase5_historial_propietarios.sql").forEach(::executeScript)
     addColumnIfMissing("clients", "status_id", "BIGINT NULL")
     addColumnIfMissing("clients", "motivo_status", "TEXT NULL")
-    jdbc.execute("update clients c join status s on s.strvalor = case upper(trim(c.estatus)) when 'SUSPENDIDO' then 'SUSPENDIDO' else 'ACTIVO' end set c.status_id = s.id where c.status_id is null")
+    if (columnExists("clients", "estatus")) {
+      jdbc.execute("update clients c join status s on s.strvalor = case upper(trim(c.estatus)) when 'SUSPENDIDO' then 'SUSPENDIDO' else 'ACTIVO' end set c.status_id = s.id where c.status_id is null")
+    } else {
+      jdbc.execute("update clients c join status s on s.strvalor = 'ACTIVO' set c.status_id = s.id where c.status_id is null")
+    }
     addIndexIfMissing("clients", "idx_clients_workshop", "taller_id")
     addIndexIfMissing("clients", "idx_clients_status", "status_id")
     addIndexIfMissing("clients", "idx_clients_full_name", "full_name")
@@ -46,9 +50,13 @@ class PhaseThreeMigration(private val jdbc: JdbcTemplate) : CommandLineRunner {
   }
 
   private fun addColumnIfMissing(table: String, column: String, definition: String) {
-    val count = jdbc.queryForObject("select count(*) from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?", Long::class.java, table, column) ?: 0
-    if (count == 0L) jdbc.execute("alter table `$table` add column `$column` $definition")
+    if (!columnExists(table, column)) jdbc.execute("alter table `$table` add column `$column` $definition")
   }
+
+  private fun columnExists(table: String, column: String): Boolean = (jdbc.queryForObject(
+    "select count(*) from information_schema.columns where table_schema = database() and table_name = ? and column_name = ?",
+    Long::class.java, table, column
+  ) ?: 0) > 0
 
   private fun addIndexIfMissing(table: String, name: String, columns: String) {
     val count = jdbc.queryForObject("select count(*) from information_schema.statistics where table_schema = database() and table_name = ? and index_name = ?", Long::class.java, table, name) ?: 0
