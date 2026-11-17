@@ -7,6 +7,7 @@ en --token y recibe el archivo Excel original únicamente en modo lectura.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import sys
@@ -79,10 +80,19 @@ class ApiError(RuntimeError):
         super().__init__(f"HTTP {status}: {message}")
 
 
+class NoRedirectHandler(request.HTTPRedirectHandler):
+    """Evita que el script siga redirecciones a destinos no autorizados."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 class Api:
-    def __init__(self, base_url: str, token: str):
+    def __init__(self, base_url: str, token: str, timeout: float):
         self.base_url = base_url.rstrip("/")
         self.token = token
+        self.timeout = timeout
+        self.opener = request.build_opener(NoRedirectHandler())
 
     def call(self, method: str, path: str, payload: dict[str, Any] | None = None, multipart: dict[str, Any] | None = None) -> Any:
         headers = {"Authorization": f"Bearer {self.token}"}
@@ -96,7 +106,7 @@ class Api:
             data = json.dumps(payload).encode("utf-8")
         req = request.Request(self.base_url + path, data=data, headers=headers, method=method)
         try:
-            with request.urlopen(req, timeout=30) as response:
+            with self.opener.open(req, timeout=self.timeout) as response:
                 text = response.read().decode("utf-8")
                 return json.loads(text) if text else None
         except error.HTTPError as exc:
@@ -122,6 +132,28 @@ class Api:
                 chunks.append(f'Content-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode("utf-8"))
         chunks.append(f"--{boundary}--\r\n".encode())
         return b"".join(chunks)
+
+
+def is_local_host(host: str) -> bool:
+    normalized = host.rstrip(".").casefold()
+    if normalized == "localhost":
+        return True
+    try:
+        address = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+    return address.is_loopback or address.is_private
+
+
+def validate_base_url(base_url: str, allowed_hosts: list[str]) -> None:
+    parsed = urlparse(base_url)
+    host = parsed.hostname
+    if parsed.scheme not in {"http", "https"} or not host:
+        raise ValueError("La URL base debe usar http o https e incluir un host.")
+    normalized_host = host.rstrip(".").casefold()
+    allowed = {item.rstrip(".").casefold() for item in allowed_hosts}
+    if not is_local_host(normalized_host) and normalized_host not in allowed:
+        raise ValueError("El host remoto requiere autorización explícita con --allow-host.")
 
 
 def rows_from_sheet(sheet) -> list[dict[str, Any]]:
@@ -314,17 +346,22 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=Path, required=True)
     parser.add_argument("--base-url", default="http://localhost:8080")
+    parser.add_argument("--allow-host", action="append", default=[])
+    parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--token", default=os.getenv("SEED_TOKEN", ""))
     parser.add_argument("--mode", choices=("preflight", "test", "import"), required=True)
     parser.add_argument("--client", default="22", help="Cliente # de la prueba")
     args = parser.parse_args()
     if not args.token:
         print("Falta SEED_TOKEN o --token.", file=sys.stderr); return 2
-    parsed_url = urlparse(args.base_url)
-    if parsed_url.hostname not in {"localhost", "127.0.0.1", "::1"}:
-        print("La URL base debe apuntar exclusivamente a localhost.", file=sys.stderr); return 2
+    try:
+        validate_base_url(args.base_url, args.allow_host)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr); return 2
+    if args.timeout <= 0:
+        print("El timeout debe ser mayor que cero.", file=sys.stderr); return 2
     workshops, clients, vehicles = load_data(args.file)
-    api = Api(args.base_url, args.token)
+    api = Api(args.base_url, args.token, args.timeout)
     if args.mode == "preflight":
         print(json.dumps(preflight(workshops, clients, vehicles, api), ensure_ascii=False, indent=2)); return 0
     stats = {"created": defaultdict(int), "skipped": [], "rejected": []}
