@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.multipart.MaxUploadSizeExceededException
 import org.springframework.web.server.ResponseStatusException
 
 data class ApiError(val message: String)
@@ -17,4 +18,8 @@ class ApiExceptionHandler {
   @ExceptionHandler(DataIntegrityViolationException::class)
   fun integrity(): ResponseEntity<ApiError> =
     ResponseEntity.status(409).body(ApiError("No se puede eliminar el registro porque tiene información asociada; considera suspenderlo"))
+
+  @ExceptionHandler(MaxUploadSizeExceededException::class)
+  fun uploadTooLarge(): ResponseEntity<ApiError> =
+    ResponseEntity.status(413).body(ApiError("La fotografía supera el límite permitido de 20 MB"))
 }
